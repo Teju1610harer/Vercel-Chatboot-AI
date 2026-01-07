@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   try {
     const { message } = req.body;
 
+    if (!message) {
+      return res.status(400).json({ error: "No message provided" });
+    }
+
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -29,6 +33,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("API ERROR:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || "OpenAI failed" });
   }
 }
