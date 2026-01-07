@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Chat App</title>
+  <title>Vercel Chatbot</title>
 </head>
 <body>
-  <h1>Welcome to your Chat App</h1>
-  <div id="chat"></div>
+  <h1>Vercel AI Demo</h1>
+  <input id="msg" placeholder="Type message" />
+  <button onclick="send()">Send</button>
+  <pre id="out"></pre>
 
   <script>
-    async function sendMessage(message) {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-      const data = await res.json();
-      document.getElementById("chat").innerText = data.reply;
-    }
+    async function send() {
+      const msg = document.getElementById('msg').value;
 
-    // Example usage:
-    sendMessage("Hi AI!");
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+
+      const data = await res.json();
+      document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+    }
   </script>
 </body>
 </html>

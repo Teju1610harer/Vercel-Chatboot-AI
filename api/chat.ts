@@ -1,17 +1,14 @@
-export default async function handler(req: Request) {
-  if (req.method !== "POST") {
-    return new Response("Only POST allowed", { status: 405 });
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Only POST allowed' });
   }
 
-  const body = await req.json();
+  const { message } = req.body || {};
 
-  return new Response(
-    JSON.stringify({
-      reply: "Hello from your AI Chatbot API 🚀",
-      input: body.message,
-    }),
-    {
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  res.status(200).json({
+    reply: 'Hello from your AI Chatbot API 🚀',
+    input: message ?? null
+  });
 }
