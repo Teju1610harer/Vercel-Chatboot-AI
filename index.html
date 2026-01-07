@@ -1,208 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Chatbot</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-  --bg: #ffffff;
-  --text: #000000;
-  --user: #007bff;
-  --ai: #e5e5e5;
-}
-
-body.dark {
-  --bg: #121212;
-  --text: #ffffff;
-  --user: #1e88e5;
-  --ai: #2a2a2a;
-}
-
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.app {
-  max-width: 500px;
-  height: 100vh;
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-header {
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid #ccc;
-}
-
-#chatBox {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-.msg {
-  margin-bottom: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  max-width: 80%;
-}
-
-.user {
-  background: var(--user);
-  color: white;
-  align-self: flex-end;
-}
-
-.ai {
-  background: var(--ai);
-  align-self: flex-start;
-}
-
-form {
-  display: flex;
-  padding: 10px;
-  gap: 5px;
-}
-
-input {
-  flex: 1;
-  padding: 8px;
-}
-
-button {
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-  </style>
+<meta charset="UTF-8" />
+<title>AI Chatbot</title>
+<style>
+  body {
+    margin: 0;
+    font-family: monospace;
+    background: #f5f5f5;
+    transition: 0.3s;
+  }
+  body.dark {
+    background: #0f0f0f;
+    color: #e5e5e5;
+  }
+  .chat {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .messages {
+    margin: 20px 0;
+  }
+  .msg {
+    margin: 10px 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+  }
+  .user {
+    background: #007bff;
+    color: white;
+    text-align: right;
+  }
+  .bot {
+    background: #e0e0e0;
+    color: black;
+  }
+  body.dark .bot {
+    background: #1f1f1f;
+    color: #e5e5e5;
+  }
+  .input-box {
+    display: flex;
+    gap: 10px;
+  }
+  input {
+    flex: 1;
+    padding: 10px;
+    font-family: monospace;
+  }
+  button {
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+</style>
 </head>
+
 <body>
-
-<div class="app">
-    <header>
-      <h2>AI Chat</h2>
-      <button id="themeToggle">🌙</button>
-    </header>
-
-    <div id="chatBox"></div>
-
-    <form id="chatForm">
-      <input id="userInput" placeholder="Type a message..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
+<div class="chat">
+  <div class="header">
+    <h2>AI Chat</h2>
+    <button onclick="toggleDark()">🌙</button>
   </div>
 
+  <div class="messages" id="messages"></div>
+
+  <div class="input-box">
+    <input id="input" placeholder="Type a message..." />
+    <button onclick="send()">Send</button>
+  </div>
+</div>
 
 <script>
- const chatBox = document.getElementById("chatBox");
-const form = document.getElementById("chatForm");
-const input = document.getElementById("userInput");
-const themeToggle = document.getElementById("themeToggle");
+let history = JSON.parse(localStorage.getItem("chatHistory") || "[]");
 
-/* ---------- Load history ---------- */
-const history = JSON.parse(localStorage.getItem("chatHistory")) || [];
-history.forEach(m => addMessage(m.text, m.type));
+const messagesDiv = document.getElementById("messages");
+const input = document.getElementById("input");
 
-/* ---------- Send message ---------- */
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+function renderHistory() {
+  messagesDiv.innerHTML = "";
+  history.forEach(m => addMessage(m.role, m.content));
+}
 
-  const text = input.value.trim();
-  if (!text) return;
+function addMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "user" : "bot");
+  div.textContent = text;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  return div;
+}
 
-  addMessage(text, "user");
-  save(text, "user");
+function typeEffect(element, text) {
+  let i = 0;
+  element.textContent = "";
+  const interval = setInterval(() => {
+    element.textContent += text[i++];
+    if (i >= text.length) clearInterval(interval);
+  }, 20);
+}
+
+async function send() {
+  const msg = input.value.trim();
+  if (!msg) return;
+
   input.value = "";
+  history.push({ role: "user", content: msg });
+  addMessage("user", msg);
 
-  // typing placeholder
-  const aiDiv = document.createElement("div");
-  aiDiv.className = "msg ai";
-  chatBox.appendChild(aiDiv);
-
-  const response = await fetch("/api/chat", {
+  const botDiv = addMessage("bot", "...");
+  
+  const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      message: text,
-      history: history.map(h => ({
-        role: h.type === "user" ? "user" : "assistant",
-        content: h.text
-      }))
-    })
+    body: JSON.stringify({ message: msg, history })
   });
 
-  const data = await response.json();
-  await streamTyping(aiDiv, data.reply);
-});
+  const data = await res.json();
+  botDiv.textContent = "";
+  typeEffect(botDiv, data.reply);
 
-
-/* ---------- Add message ---------- */
-function addMessage(text, type) {
-  const div = document.createElement("div");
-  div.className = `msg ${type}`;
-  div.textContent = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-/* ---------- Typing animation ---------- */
-async function typingEffect(text) {
-  const div = document.createElement("div");
-  div.className = "msg ai";
-  chatBox.appendChild(div);
-
-  let i = 0;
-  const interval = setInterval(() => {
-    div.textContent += text[i];
-    i++;
-    chatBox.scrollTop = chatBox.scrollHeight;
-    if (i === text.length) {
-      clearInterval(interval);
-      save(text, "ai");
-    }
-  }, 30);
-}
-
-/* ---------- Save history ---------- */
-function save(text, type) {
-  history.push({ text, type });
+  history.push({ role: "assistant", content: data.reply });
   localStorage.setItem("chatHistory", JSON.stringify(history));
 }
 
-/* ---------- Dark mode ---------- */
-themeToggle.onclick = () => {
+function toggleDark() {
   document.body.classList.toggle("dark");
-  localStorage.setItem(
-    "theme",
-    document.body.classList.contains("dark") ? "dark" : "light"
-  );
-};
-
-if (localStorage.getItem("theme") === "dark") {
-  document.body.classList.add("dark");
-}
-async function streamTyping(element, text) {
-  let i = 0;
-  const interval = setInterval(() => {
-    element.textContent += text[i];
-    i++;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    if (i === text.length) {
-      clearInterval(interval);
-      save(text, "ai");
-    }
-  }, 25);
 }
 
+renderHistory();
 </script>
-
 </body>
 </html>

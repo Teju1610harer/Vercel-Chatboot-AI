@@ -25,7 +25,6 @@ export default async function handler(req, res) {
       reply: completion.choices[0].message.content,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI error" });
+    res.status(500).json({ error: err.message });
   }
 }
