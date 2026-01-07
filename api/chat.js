@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a helpful AI assistant." },
+        { role: "system", content: "You are a terminal-style AI assistant." },
         ...history,
         { role: "user", content: message },
       ],
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       reply: completion.choices[0].message.content,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
