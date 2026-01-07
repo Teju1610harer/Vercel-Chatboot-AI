@@ -1,27 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Vercel Chatbot</title>
+  <meta charset="UTF-8" />
+  <title>Vercel AI Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chatbox {
+      background: #fff;
+      width: 400px;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    #reply {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Vercel AI Demo</h1>
-  <input id="msg" placeholder="Type message" />
-  <button onclick="send()">Send</button>
-  <pre id="out"></pre>
+
+  <div class="chatbox">
+    <h2>AI Chatbot 🤖</h2>
+    <input id="msg" placeholder="Type a message..." />
+    <button onclick="send()">Send</button>
+    <div id="reply"></div>
+  </div>
 
   <script>
     async function send() {
-      const msg = document.getElementById('msg').value;
+      const message = document.getElementById("msg").value;
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
       });
 
       const data = await res.json();
-      document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+      document.getElementById("reply").innerText = data.reply;
     }
   </script>
+
 </body>
 </html>
