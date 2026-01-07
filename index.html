@@ -1,87 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Vercel AI Chatbot</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  .chatbox {
-    background: #fff;
-    width: 400px;
-    padding: 20px;
-    border-radius: 10px;
-  }
-  #messages {
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 10px;
-  }
-  .message {
-    margin: 5px 0;
-    padding: 5px 10px;
-    border-radius: 5px;
-  }
-  .user { background: #d1e7ff; text-align: right; }
-  .ai { background: #eee; text-align: left; }
-</style>
+  <meta charset="UTF-8" />
+  <title>AI Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+  --bg: #ffffff;
+  --text: #000000;
+  --user: #007bff;
+  --ai: #e5e5e5;
+}
+
+body.dark {
+  --bg: #121212;
+  --text: #ffffff;
+  --user: #1e88e5;
+  --ai: #2a2a2a;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  max-width: 500px;
+  height: 100vh;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #ccc;
+}
+
+#chatBox {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.msg {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.user {
+  background: var(--user);
+  color: white;
+  align-self: flex-end;
+}
+
+.ai {
+  background: var(--ai);
+  align-self: flex-start;
+}
+
+form {
+  display: flex;
+  padding: 10px;
+  gap: 5px;
+}
+
+input {
+  flex: 1;
+  padding: 8px;
+}
+
+button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+  </style>
 </head>
 <body>
-<div class="chatbox">
-  <div id="messages"></div>
-  <input type="text" id="input" placeholder="Type a message..." />
-  <button id="send">Send</button>
-</div>
+
+<div class="app">
+    <header>
+      <h2>AI Chat</h2>
+      <button id="themeToggle">🌙</button>
+    </header>
+
+    <div id="chatBox"></div>
+
+    <form id="chatForm">
+      <input id="userInput" placeholder="Type a message..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
 
 <script>
-  const input = document.getElementById("input");
-  const messagesDiv = document.getElementById("messages");
+ const chatBox = document.getElementById("chatBox");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("userInput");
+const themeToggle = document.getElementById("themeToggle");
 
-  let history = [];
+/* ---------- Load history ---------- */
+const history = JSON.parse(localStorage.getItem("chatHistory")) || [];
+history.forEach(m => addMessage(m.text, m.type));
 
-  function addBubble(text, sender) {
-    const div = document.createElement("div");
-    div.className = "message " + sender;
-    div.innerText = text;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
+/* ---------- Send message ---------- */
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  async function sendMessage() {
-    const msg = input.value.trim();
-    if (!msg) return;
-    input.value = "";
+  const text = input.value.trim();
+  if (!text) return;
 
-    // Show user message
-    addBubble(msg, "user");
-    history.push({ role: "user", content: msg });
+  addMessage(text, "user");
+  save(text, "user");
+  input.value = "";
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, history }),
-      });
-      const data = await res.json();
+  // typing placeholder
+  const aiDiv = document.createElement("div");
+  aiDiv.className = "msg ai";
+  chatBox.appendChild(aiDiv);
 
-      // Show AI reply
-      addBubble(data.reply, "ai");
-      history.push({ role: "assistant", content: data.reply });
-    } catch (err) {
-      addBubble("Error: " + err.message, "ai");
-    }
-  }
-
-  document.getElementById("send").addEventListener("click", sendMessage);
-  input.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendMessage();
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: text,
+      history: history.map(h => ({
+        role: h.type === "user" ? "user" : "assistant",
+        content: h.text
+      }))
+    })
   });
+
+  const data = await response.json();
+  await streamTyping(aiDiv, data.reply);
+});
+
+
+/* ---------- Add message ---------- */
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = `msg ${type}`;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+/* ---------- Typing animation ---------- */
+async function typingEffect(text) {
+  const div = document.createElement("div");
+  div.className = "msg ai";
+  chatBox.appendChild(div);
+
+  let i = 0;
+  const interval = setInterval(() => {
+    div.textContent += text[i];
+    i++;
+    chatBox.scrollTop = chatBox.scrollHeight;
+    if (i === text.length) {
+      clearInterval(interval);
+      save(text, "ai");
+    }
+  }, 30);
+}
+
+/* ---------- Save history ---------- */
+function save(text, type) {
+  history.push({ text, type });
+  localStorage.setItem("chatHistory", JSON.stringify(history));
+}
+
+/* ---------- Dark mode ---------- */
+themeToggle.onclick = () => {
+  document.body.classList.toggle("dark");
+  localStorage.setItem(
+    "theme",
+    document.body.classList.contains("dark") ? "dark" : "light"
+  );
+};
+
+if (localStorage.getItem("theme") === "dark") {
+  document.body.classList.add("dark");
+}
+async function streamTyping(element, text) {
+  let i = 0;
+  const interval = setInterval(() => {
+    element.textContent += text[i];
+    i++;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    if (i === text.length) {
+      clearInterval(interval);
+      save(text, "ai");
+    }
+  }, 25);
+}
+
 </script>
+
 </body>
 </html>
