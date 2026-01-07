@@ -1,58 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Vercel AI Chatbot</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .chatbox {
-      background: #fff;
-      width: 400px;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-    }
-    #reply {
-      margin-top: 15px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
+import OpenAI from "openai";
 
-  <div class="chatbox">
-    <h2>AI Chatbot 🤖</h2>
-    <input id="msg" placeholder="Type a message..." />
-    <button onclick="send()">Send</button>
-    <div id="reply"></div>
-  </div>
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-  <script>
-    async function send() {
-      const message = document.getElementById("msg").value;
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Only POST allowed" });
+  }
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
+  const { message, history } = req.body;
 
-      const data = await res.json();
-      document.getElementById("reply").innerText = data.reply;
-    }
-  </script>
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a helpful AI assistant." },
+        ...(history || []),
+        { role: "user", content: message },
+      ],
+    });
 
-</body>
-</html>
+    res.status(200).json({
+      reply: completion.choices[0].message.content,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
