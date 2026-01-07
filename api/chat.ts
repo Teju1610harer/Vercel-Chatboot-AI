@@ -1,6 +1,8 @@
-import { NextRequest } from "next/server";
+export default async function handler(req: Request) {
+  if (req.method !== "POST") {
+    return new Response("Only POST allowed", { status: 405 });
+  }
 
-export async function POST(req: NextRequest) {
   const body = await req.json();
 
   return new Response(
@@ -8,6 +10,8 @@ export async function POST(req: NextRequest) {
       reply: "Hello from your AI Chatbot API 🚀",
       input: body.message,
     }),
-    { headers: { "Content-Type": "application/json" } }
+    {
+      headers: { "Content-Type": "application/json" },
+    }
   );
 }
