@@ -22,3 +22,5 @@ Thumbs.db
 *.user
 *.userosscache
 *.sln.docstates
+.vercel
+.env*.local
