@@ -76,13 +76,10 @@ async function chat(userInput: string) {
 
   let fullResponse = "";
   for await (const chunk of result.textStream) {
-    process.stdout.write(chunk);
-    fullResponse += chunk;
+    fullResponse += chunk;   // ❌ no stdout.write
   }
 
-  console.log("\n");
-  aiBubble(fullResponse);
-
+  aiBubble(fullResponse);    // ✅ printed only ONCE
   messages.push({ role: "assistant", content: fullResponse });
 }
 
